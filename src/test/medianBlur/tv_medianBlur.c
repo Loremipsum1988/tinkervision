@@ -39,17 +39,10 @@ int main(int argc, char* argv[]) {
         exit(-1);
     }
 
-
-	/*
-
     sleep(1);
 
     result = tv_module_start("medianBlur", &id);
     printf("Configured medianBlur id %d: Code %d (%s)\n", id, result,
-           tv_result_string(result));
-
-    result = tv_set_parameter(id, "kSize", kSize);
-    printf("Set kSize to %d: Code %d (%s)\n", kSize, result,
            tv_result_string(result));
 
     sleep(10);
@@ -58,8 +51,6 @@ int main(int argc, char* argv[]) {
     printf("Stopped medianBlur %d: Code %d (%s)\n", id, result,
            tv_result_string(result));
 
-    quit(); */
-
-
+    /* quit(); */
     return (0);
 }
