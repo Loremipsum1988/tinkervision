@@ -46,4 +46,13 @@ void tv::MedianBlur::execute(tv::ImageHeader const& image,
 
 	/// Applying median blur
 	medianBlur(cv_src, cv_dest, this->kSize);
+
+	/// debug output
+	cv::namedWindow("original",CV_WINDOW_AUTOSIZE);
+	cv::namedWindow("blur",CV_WINDOW_AUTOSIZE);
+
+	cv::imshow("original", cv_src);
+	cv::imshow("blur", cv_dest);
+
+	cv::waitKey(5);
 }
