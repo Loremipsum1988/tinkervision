@@ -58,10 +58,20 @@ typedef void (*TV_LibrariesCallback)(char const* name, char const* path,
 ///< Default 'no-error' result
 #define TV_OK 0
 
+#ifndef DEFAULT_CALL
+///< Check for results every grain ms.
+#define DELAY_GRAIN 100
+///< Timout occurs after this many #DELAY_GRAIN.
+#define GRAINS 10
+///< Special result: Timeout occured, result buffered.
+#define TV_RESULT_BUFFERED 1
+#endif
+
 /* General errors: */
 #define TV_NOT_IMPLEMENTED -1
 #define TV_INTERNAL_ERROR -2
 #define TV_INVALID_ARGUMENT -3
+#define TV_BUSY -4
 
 ///< Could not allocate a node in a SceneTree
 #define TV_NODE_ALLOCATION_FAILED -11

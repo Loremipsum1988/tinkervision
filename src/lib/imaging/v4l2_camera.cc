@@ -37,6 +37,7 @@
 #include <sys/mman.h>
 #include <linux/videodev2.h>
 #include <libv4l2.h>
+#include <cstdio>
 
 #include "v4l2_camera.hh"
 
@@ -69,9 +70,15 @@ static auto open = v4l2_open;
 static auto close = v4l2_close;
 }
 
-tv::V4L2USBCamera::V4L2USBCamera(int8_t camera_id) : Camera(camera_id) {
+tv::V4L2USBCamera::V4L2USBCamera(uint8_t camera_id) : Camera(camera_id) {
     // zero-initialize buffers for the frames to be grabbed
     frames_ = new v4l2::Frame[request_buffer_count_ * sizeof(v4l2::Frame)]();
+    v4l2_log_file = fopen(v4l2_log, "a");
+    if (v4l2_log_file) {
+        Log("V4L2", "Opened logfile ", v4l2_log);
+    } else {
+        Log("V4L2", "Failed to open logfile ", v4l2_log, ": ", errno);
+    }
 }
 
 tv::V4L2USBCamera::~V4L2USBCamera(void) {
@@ -80,12 +87,15 @@ tv::V4L2USBCamera::~V4L2USBCamera(void) {
 
     // un-mmap buffers
     if (frames_) {
-        for (size_t i = 0; i < request_buffers_.count; ++i) {
+        for (size_t i = 0; i < request_buffer_count_; ++i) {
             v4l2::munmap(frames_[i].start, frames_[i].length);
             frames_[i].mapped = false;
         }
     }
 
+    if (v4l2_log_file) {
+        fclose(v4l2_log_file);
+    }
     delete[] frames_;
 }
 
@@ -104,9 +114,11 @@ bool tv::V4L2USBCamera::open_device(uint16_t width, uint16_t height) {
     const char* device =
         (std::string("/dev/video") + std::to_string(camera_id_)).c_str();
 
-    device_ = v4l2::open(device, O_RDWR | O_NONBLOCK, 0);
+    device_ = v4l2::open(device, O_RDWR, 0);
+    Log("V4L2", "Open ", std::string(device), ": ", device_);
 
     if (device_ == -1) {
+        LogError("V4L2", "Open failed: ", strerror(errno));
         device_ = 0;
     }
 
@@ -323,10 +335,12 @@ bool tv::V4L2USBCamera::_set_highest_framerate(v4l2::PixelFormat& px_format) {
 
         // return result of trying to set the framerate
         result = io_operation(device_, v4l2::set_parameter, &stream_parameter);
+        Log("V4L2", "Set framerate to ", framerate_);
     }
 
     else {  // return can't set the framerate explicitly
 
+        Log("V4L2", "Can't set the framerate");
         result = false;
     }
 
@@ -382,6 +396,7 @@ bool tv::V4L2USBCamera::retrieve_frame(tv::ImageData** data) {
 }
 
 bool tv::V4L2USBCamera::_start_capturing(void) {
+    Log("V4L2", "StartCapturing");
     auto result = false;
 
     if (is_open() and _init_request_buffers()) {

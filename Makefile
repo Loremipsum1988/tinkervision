@@ -1,10 +1,18 @@
 cc		:= g++
-ccflags	:= -Wall -Werror -pedantic -shared -std=c++11 -fpic -DWITH_LOGGER
+ccflags	:= -Wall -Werror -pedantic -shared -std=c++14 -fpic -DWITH_LOGGER
+
+ifdef OCVC
+	ccflags += -DWITH_OPENCV_CAM
+endif
 
 ifdef DEBUG
 	ccflags += -g -O0 -DDEBUG
 else
 	ccflags += -O3
+endif
+
+ifdef DEFAULT_CALL
+	ccflags += -DDEFAULT_CALL
 endif
 
 ifdef USER_PREFIX
@@ -24,8 +32,8 @@ libs		:= -lstdc++ -lv4l2 -lm -lpython2.7
 inc		:= $(addprefix -I./$(src_prefix)/,$(parts)) \
 		   $(OCV_inc) \
 		   -I/usr/include/python2.7
-ifneq ($(or $(WITH_OPENCV_CAM),$(DEBUG_WINDOW)),)
-	libs	+= -lopencv_highgui -lopencv_imgproc -lopencv_video \
+ifdef OCVC
+	libs	+= `pkg-config --libs opencv` \
 		   -lrt -lpthread -ldl
 	inc	+= -I/usr/local/include/opencv -I/usr/local/include
 endif

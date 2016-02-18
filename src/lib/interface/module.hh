@@ -42,6 +42,8 @@
 
 namespace tv {
 
+class ModuleWrapper;  ///< Tinkervision-internal module representation
+
 /// Module interface.  This class declares the only interface needed by modules
 /// to be executable in the library context.  All methods to be implemented are
 /// declared in the protected namespace.  The public namespace contains only
@@ -90,7 +92,7 @@ protected:
     /// \return A valid ImageHeader.
     virtual ImageHeader get_output_image_header(ImageHeader const& input);
 
-    /// Possibly initialize this module.  This will be called once after
+    /// Possibly initialize this module.  This will be called only once after
     /// construction of this module.  The default implementation is empty.
     /// \sa initialize(), which calls this.
     virtual void init(void);
@@ -122,18 +124,20 @@ protected:
                          tv::ImageHeader const& output_header,
                          tv::ImageData* output_data) = 0;
 
+    /// The module is about to be stopped.  This can be used to reset some
+    /// internal state. The default implementation is empty.
+    virtual void stop(void);
+
     /// Retrieve the result from this module.  The default implementation
     /// returns an invalid result.
     /// \sa execute()
     /// \note This will only be called if the module actually has a result, as
     /// indicated by the value of (produces_result() and has_result()).
     /// \return Latest result of this module.
-    /// \todo Store a valid result to have it available if future execute()
-    /// calls do not produce a valid one, but one is requested? Or simply return
-    /// an invalid then?
     virtual Result const& get_result(void) const;
 
-    /// Hook for modules which want to be notified about a parameter change.
+    /// Hook for modules which want to be notified about a numerical parameter
+    /// change.
     /// This will be called whenever a parameter was successfully changed.
     /// It may be usefull to store the new value reduntantly inside the actual
     /// module for faster access, if the parameter is accessed often.  The
@@ -145,6 +149,21 @@ protected:
     /// \param[in] parameter The name of the changed parameter.
     /// \param[in] value New value
     virtual void value_changed(std::string const& parameter, int32_t value) {}
+
+    /// Hook for modules which want to be notified about a string parameter
+    /// change.
+    /// This will be called whenever a parameter was successfully changed.
+    /// It may be usefull to store the new value reduntantly inside the actual
+    /// module for faster access, if the parameter is accessed often.  The
+    /// default implementation does nothing.
+    /// \note The value passed here will be in the allowed range of the
+    /// registered parameter, so a deriving module can use a smaller type
+    /// internally, and rely on the safety of a cast, if possible from the
+    /// limits of the parameter.
+    /// \param[in] parameter The name of the changed parameter.
+    /// \param[in] value New value
+    virtual void value_changed(std::string const& parameter,
+                               std::string const& value) {}
 
     Environment const& environment;  ///< Environment passed to the constructor
 
@@ -242,6 +261,7 @@ public:
 
     /// Execute this module with the current camera frame.
     /// \param[in] image Current frame.
+    /// \return A valid result if the module provides one.
     Result const& execute(tv::Image const& image);
 
     /// Get the modified image.  If this module outputs_image(), the result of
@@ -263,6 +283,8 @@ public:
     Result const& result(void) const;
 
 private:
+    friend class ModuleWrapper;
+
     std::string const name_;  ///< Name of this module, c'tor parameter.
 
     ParameterMap parameter_map_;                ///< Available parameters.

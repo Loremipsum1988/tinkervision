@@ -31,7 +31,6 @@
 #include <limits>
 #include <functional>
 #include <algorithm>
-#include <atomic>
 #include <tuple>
 #include <cstring>
 
@@ -100,6 +99,22 @@ public:
     ///     - #TV_OK when execution halted successfully.
     ///     - #TV_EXEC_THREAD_FAILURE when the thread is still running.
     int16_t quit(void);
+
+    /// Execute a specific module now, interrupting the main execution loop.
+    /// - If module is inactive, activate it for one run
+    /// - Do not request a new frame
+    /// - Halt, but later resume the main execution loop
+    /// \param[in] id Id of a loaded module.
+    /// \return #TV_NOT_IMPLEMENTED
+    int16_t module_run_now(int8_t id);
+
+    /// Execute a specific module now, interrupting the main execution loop.
+    /// - If module is inactive, activate it for one run
+    /// - Request a new frame
+    /// - Stop the current main execution loop
+    /// \param[in] id Id of a loaded module.
+    /// \return #TV_NOT_IMPLEMENTED
+    int16_t module_run_now_new_frame(int8_t id);
 
     /// Set the framesize.
     /// \return
@@ -211,10 +226,22 @@ public:
     char const* result_string(int16_t code) const;
 
     /// Check if a camera is available in the system.
-    /// \return
-    ///  - #TV_CAMERA_NOT_AVAILABLE if the camera is not available,
-    ///  - #TV_OK else
-    int16_t is_camera_available(void);
+    /// \return true if available
+    bool is_camera_available(void);
+
+    /// Check if a specific camera is available in the system.
+    /// \param[in] id Device id
+    /// \return true if available.
+    bool is_camera_available(uint8_t id);
+
+    /// Select a specific camera.
+    /// If the specified camera is not available in the system, another one may
+    /// still be used. This is for the case that multiple cameras are available.
+    /// If the library is already active with another camera and the selected
+    /// one would be available too, it will be switched.
+    /// \param[in] id Device id
+    /// \return true if the device is available.
+    bool prefer_camera_with_id(uint8_t id);
 
     /// Retrieve the frame settings from the camera. This can only work
     /// if the camera was opened already
@@ -275,7 +302,7 @@ public:
     ///    - #TV_INVALID_ARGUMENT if no such library is loadable.
     ///    - #TV_OK else
     int16_t library_get_parameter_count(std::string const& libname,
-                                        size_t& count) const;
+                                        uint16_t& count) const;
 
     /// Get the description of a parameter of a library module.
     /// If the parameter is numeric, the min/max/default values are returned. If
@@ -441,14 +468,19 @@ private:
                        noexcept(FrameConversions()) and noexcept(Strings()) and
                        noexcept(SceneTrees()));
 
+    std::atomic_flag done_{ATOMIC_FLAG_INIT};  ///< Used to synchronize long
+    /// lasting operations, in particular _module_load()
+
     CameraControl camera_control_;  ///< Camera access abstraction
     FrameConversions conversions_;  ///< Camera frame in requested formats
     Strings result_string_map_;     ///< String mapping of Api-return values
-    Environment* environment_;      ///< Configuration and scripting context
     SceneTrees scene_trees_;
 
+    Environment* environment_;     ///< Configuration and scripting context
     Modules* modules_;             ///< RAII-style managed vision algorithms.
     ModuleLoader* module_loader_;  ///< Manages available libraries
+
+    Image image_;  ///< Current frame in requested format
 
     bool api_valid_{false};  ///< True once constructed to valid state.
     bool idle_process_running_{false};   ///< Dummy module activated?
@@ -456,12 +488,17 @@ private:
 
     std::thread executor_;        ///< Mainloop-Context executing the modules.
     bool active_ = true;          ///< While true, the mainloop is running.
+    bool paused_ = false;         ///< Pauses module execution if true
     uint32_t frameperiod_ms_{0};  ///< Minimum inverse framerate
 
     TV_Callback default_callback_ = nullptr;
 
     bool active(void) const { return active_; }
     bool active_modules(void) const { return modules_->size(); }
+
+    /// Only context from which modules are executed.
+    void module_exec(int16_t id, ModuleWrapper& module);
+    friend Modules;
 
     /// Threaded execution context of vision algorithms (modules).
     /// This method is started asynchronously during construction of

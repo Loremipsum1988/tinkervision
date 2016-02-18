@@ -35,10 +35,14 @@ class Strings {
 private:
     const std::map<int16_t, char const*> string_map_{
         {TV_OK, "Ok"},
+#ifndef DEFAULT_CALL
+        {TV_RESULT_BUFFERED, "Result buffered"},
+#endif
         // -11...
         {TV_NOT_IMPLEMENTED, "Not implemented"},
         {TV_INTERNAL_ERROR, "Unknown internal error"},
         {TV_INVALID_ARGUMENT, "Invalid argument passed"},
+        {TV_BUSY, "Tinkervision busy; try again"},
         {TV_NODE_ALLOCATION_FAILED, "Allocating scene node failed"},
         {TV_NO_ACTIVE_MODULES, "No active modules"},
         // -21...

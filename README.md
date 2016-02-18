@@ -77,12 +77,11 @@ Red-Brick and on a PC which can access the device:
 3. `git clone https://github.com/philkroos/tinkervision`
 4. `git clone https://github.com/philkroos/generators`
 5. `cd generators && git checkout tinkervision`
-6. `cd python && WITH_TINKERVISION=1 python generate_python_bindings.py`
-7. `WITH_TINKERVISION=1 python generate_python_zip.py`
-8. `mkdir /tmp/unzipped && cp tinkerforge_python_bindings_2_1_5.zip /tmp/unzipped`
-9. `cd /tmp/unzipped && unzip tinkerforge_python_bindings_2_1_5.zip`
-10. `cp source/tinkerforge /home/tf/TinkervisionTest/tinkervision/src/test/red-brick/scripts -r`
-11. `cd /home/tf/TinkervisionTest/tinkervision/src/test/red-brick/scripts`
+6. `mkdir /home/tf/Tinkervision/Test/tinkervision/src/test/red-brick/scripts/tinkerforge`
+7. `cd python && WITH_TINKERVISION=1 python generate_python_bindings.py`
+8. `cp ip_connection bindings/brick_red.py /home/tf/TinkervisionTest/tinkervision/src/test/red-brick/scripts/tinkerforge`
+9. `cd /home/tf/TinkervisionTest/tinkervision/src/test/red-brick/scripts`
+10. `touch tinkerforge/__init__.py`
 
 Then you should be able to execute the scripts, but you need the UID of your
 Red-Brick, which can be found e.g. with the Tinkerforge `brickv`. `main.py` and
@@ -90,10 +89,19 @@ Red-Brick, which can be found e.g. with the Tinkerforge `brickv`. `main.py` and
 
 - `./main.py <uid> colormotion`
 
-# Note
-The library searches for loadable modules in two (currently fixed) paths:
-1. `/usr/lib/tinkervision`
-2. A custom path, which is currently set to `/tmp/lib/tinkervision` for testing.
+If execution fails there may be another instance of ip_connection or brick_red.py in
+the system, probably from an installation of brickv. The easiest solution would be to
+remove all system-wide installed tinkerforge packages then, as well as the egg from
+Pythons site-packages.
 
-This means that modules that are installed to the second path won't be available
-after reboot and have to be reinstalled.
+# Note
+The library searches for loadable modules in two paths:
+1. `/usr/lib/tinkervision` is fixed
+2. The subdirectory `lib` in a custom path, which is configured at compile time:
+   - `USER_PREFIX=/home/me/vision/ make`
+   The default prefix is `/home/<current-user>/tv/`. The makefile tries to create
+   a valid directory structure.
+
+The provided modules will be installed to the system folder by default, but if `PRE`
+is set during `make install`, they'll be installed to the user folder:
+  `PRE=~/tv/lib make install` installs the module to the pre-configured library path.

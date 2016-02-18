@@ -72,9 +72,13 @@ private:
     ModuleWrapper::Tag tags_{ModuleWrapper::Tag::None};  ///< Runtime tags used
                                                          /// by the mainloop
 
-    Module* tv_module_;  ///< Wrapped module
+    Module* tv_module_{nullptr};  ///< Wrapped module
+    Result latest_result_;        ///< Set after execute if provided
 
     TV_Callback cb_ = nullptr;  ///< Callback for results of the wrapped module
+    bool callbacks_enabled_{true};  ///< If false, callbacks won't be made. This
+                                    /// has only relevance if the wrapped module
+                                    /// can_have_result()
 
     uint8_t period_{1};  ///< An execution frequency for the wrapped module.
                          /// Defaults to 1, which means 'execute every cycle'.
@@ -102,7 +106,7 @@ public:
     ModuleWrapper& operator=(ModuleWrapper&& rhs) = delete;
 
     bool register_callback(TV_Callback callback) {
-        if (not tv_module_->can_have_result() or cb_) {
+        if (not tv_module_->can_have_result()) {
             return false;
         }
 
@@ -113,12 +117,28 @@ public:
 
     /// Execute the wrapped module with the given image.
     /// \param[in] image The current frame
-    /// \return The result of the execution or nullptr;
-    Result const* execute(tv::Image const& image);
+    void execute(tv::Image const& image);
 
+    /// Try to initialize the wrapped module.
+    /// \return \c false if initialization failed.
     bool initialize(void) {
-        initialized_ = tv_module_->register_parameter("period", 0, 500, 1) and
+
+        /// This can only be run once.
+        if (initialized_) {
+            return false;
+        }
+
+        initialized_ = true;
+        if (tv_module_->produces_result()) {
+            initialized_ =
+                tv_module_->register_parameter("result_timeout", 0, 40, 20) and
+                tv_module_->register_parameter("callbacks_enabled", 0, 1, 1);
+        }
+
+        initialized_ = initialized_ and
+                       tv_module_->register_parameter("period", 0, 500, 1) and
                        tv_module_->initialize();
+
         return initialized_;
     }
 
@@ -140,10 +160,27 @@ public:
         return active_;
     }
 
+    /// Enable the wrapped module.
+    /// If the module is not currently enabled, also set Tag::ExecAndDisable.
+    /// \return True if the module could be activated.
+    bool enable_at_least_once(void) {
+        Log("MODULE", "Enabling ", module_id_, " (", name(), ")");
+        if (initialized_) {
+            if (not active_) {
+                tag(Tag::ExecAndDisable);
+            }
+            active_ = true;
+        } else {
+            active_ = false;
+        }
+        return active_;
+    }
+
     /// Disable this unit. This does not modify the wrapped module, simply stops
     /// it from being executed.
     void disable(void) {
         Log("MODULE", "Disabling ", module_id_, " (", name(), ")");
+        tv_module_->stop();
         active_ = false;
     }
 
@@ -202,6 +239,8 @@ public:
         return tv_module_->get_parameter_by_number(number);
     }
 
+    /// Retrieve the result of the latest execute().
+    /// \return Latest or an invalid result.
     Result const& result(void) const;
 
     tv::Image const& modified_image(void) {

@@ -72,6 +72,12 @@ bool tv::Module::has_parameter(std::string const& parameter) const {
 
 bool tv::Module::register_parameter(std::string const& name, int32_t min,
                                     int32_t max, int32_t init) {
+    if (max < min or init < min or init > max) {
+        LogError("MODULE", name_, ": Invalid values: ", min, " ", max, " ",
+                 init);
+        init_error_ = true;
+        return false;
+    }
     return register_parameter_typed<NumericalParameter>(name, min, max, init);
 }
 
@@ -80,6 +86,11 @@ bool tv::Module::register_parameter(
     std::function<bool(std::string const& old, std::string const& value)>
         verify) {
 
+    if (init.size() >= TV_STRING_SIZE) {
+        LogError("MODULE", name_, ": Parameter default value too long ", init);
+        init_error_ = true;
+        return false;
+    }
     return register_parameter_typed<StringParameter>(name, init, verify);
 }
 
@@ -97,7 +108,7 @@ bool tv::Module::register_parameter_typed(std::string const& name,
     }
 
     /// The parameter name must not exceed #TV_STRING_SIZE characters
-    if (name.size() > TV_STRING_SIZE - 1) {
+    if (name.size() >= TV_STRING_SIZE) {
         LogError("MODULE", name_, ": Parameter name too long ", name);
         init_error_ = true;
         return false;
@@ -118,7 +129,11 @@ bool tv::Module::set(std::string const& parameter, std::string const& value) {
 
 template <typename T>
 bool tv::Module::set_parameter(std::string const& parameter, T const& value) {
-    return has_parameter(parameter) and parameter_map_[parameter]->set(value);
+    if (has_parameter(parameter) and parameter_map_[parameter]->set(value)) {
+        value_changed(parameter, value);
+        return true;
+    }
+    return false;
 }
 
 bool tv::Module::get(std::string const& parameter, int32_t& value) const {
@@ -169,7 +184,7 @@ tv::Result const& tv::Module::execute(tv::Image const& image) {
     execute(image.header, image.data, output_image_.header(),
             output_image_.image().data);
 
-    return get_result();
+    return result();
 }
 
 bool tv::Module::has_result(void) const { return false; }
@@ -177,8 +192,7 @@ bool tv::Module::has_result(void) const { return false; }
 tv::Result const& tv::Module::get_result(void) const { return invalid_result_; }
 
 tv::Result const& tv::Module::result(void) const {
-    if (not can_have_result_ or not has_result()) {
-        return invalid_result_;
-    }
-    return get_result();
+    return (can_have_result_ and has_result()) ? get_result() : invalid_result_;
 }
+
+void tv::Module::stop(void) {}

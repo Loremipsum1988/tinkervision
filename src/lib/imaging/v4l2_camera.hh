@@ -125,7 +125,7 @@ using ColorSpaceMapping = struct ColorSpaceMapping {
 
 class V4L2USBCamera : public Camera {
 public:
-    explicit V4L2USBCamera(int8_t camera_id);
+    explicit V4L2USBCamera(uint8_t camera_id);
     ~V4L2USBCamera(void) override final;
 
     bool open_device(void) override final;
@@ -145,6 +145,12 @@ protected:
     void close(void) override final;
 
 private:
+#ifdef DEBUG
+    char const* v4l2_log = "/tmp/tv_v4l2.log";
+#else
+    char const* v4l2_log = "/dev/null";
+#endif
+
     std::array<ColorSpaceMapping, 1> supported_codings_ = {{
         {v4l2::YUYV, ColorSpace::YUYV},
         // Got no hw supporting this to test it yet

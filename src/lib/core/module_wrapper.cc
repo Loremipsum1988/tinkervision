@@ -26,7 +26,9 @@
 
 #include "module_wrapper.hh"
 
-tv::Result const* tv::ModuleWrapper::execute(tv::Image const& image) {
+#include <cstring>
+
+void tv::ModuleWrapper::execute(tv::Image const& image) {
     static decltype(period_) current{0};
 
     /// Execute the module if period_ is not 0 and the module is scheduled to
@@ -34,9 +36,18 @@ tv::Result const* tv::ModuleWrapper::execute(tv::Image const& image) {
     /// internal counter.
     if (period_ and ++current >= period_) {
         current = 0;
-        return &tv_module_->execute(image);
+        auto result = &tv_module_->execute(image);
+
+        if (callbacks_enabled_ and cb_ and result) {
+            Log("MODULE_WRAPPER", "Callback for ", module_id_, " - ", name());
+            TV_ModuleResult cresult = {result->x, result->y, result->width,
+                                       result->height};
+            std::strncpy(cresult.string, result->result.c_str(),
+                         TV_STRING_SIZE - 1);
+            cresult.string[TV_STRING_SIZE - 1] = '\0';
+            cb_(static_cast<int8_t>(module_id_), cresult, nullptr);
+        }
     }
-    return nullptr;
 }
 
 tv::ColorSpace tv::ModuleWrapper::expected_format(void) const {

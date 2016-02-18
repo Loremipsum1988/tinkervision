@@ -28,7 +28,6 @@
 
 #include <sys/types.h>
 #include <unistd.h>
-#include <iterator>
 
 #include "api.hh"
 #include "module_wrapper.hh"
@@ -50,7 +49,7 @@ tv::Api::Api(void) noexcept(noexcept(CameraControl()) and
         }
 
         // dynamic construction because not noexcept
-        modules_ = new Modules;
+        modules_ = new Modules(&Api::module_exec, this);
 
         // dynamic construction because not noexcept
         module_loader_ = new ModuleLoader(*environment_);
@@ -168,71 +167,55 @@ int16_t tv::Api::quit(void) {
     return TV_OK;
 }
 
+// Execute active module. This is the ONLY place where modules are executed.
+void tv::Api::module_exec(int16_t id, ModuleWrapper& module) {
+    // Log("API", "Executing module ", id);
+
+    if (not module.enabled()) {  // skip paused modules
+        return;
+    }
+
+    if (module.expected_format() !=
+        ColorSpace::NONE) {  // retrieve the frame in the requested format
+                             // and execute the module
+
+        conversions_.get_frame(image_, module.expected_format());
+        // ignoring result, doing callbacks (maybe, see default_callback_)
+        try {
+            module.execute(image_);
+        } catch (...) {
+            LogError("API", "Module ", module.name(), " (", id, ") crashed: ");
+            module.tag(ModuleWrapper::Tag::Removable);
+            return;
+        }
+    }
+
+    auto& output = module.modified_image();
+    if (output.header.format != ColorSpace::INVALID) {
+        conversions_.set_frame(output);
+    }
+
+    auto& tags = module.tags();
+    if (tags & ModuleWrapper::Tag::ExecAndRemove) {
+        module.tag(ModuleWrapper::Tag::Removable);
+        camera_control_.release();
+
+    } else if (tags & ModuleWrapper::Tag::ExecAndDisable) {
+        Log("API", "Disabling ExecAndDisable-tagged id ", module.id());
+        module.disable();
+        camera_control_.release();
+    }
+}
+
 void tv::Api::execute(void) {
     Log("API", "Starting main loop");
 
-    auto image = Image();
-
-    // Execute active module. This is the ONLY place where modules are executed.
-    auto module_exec = [&](int16_t id, ModuleWrapper& module) {
-        auto result = (Result const*)(nullptr);
-        // Log("API", "Executing module ", id);
-
-        if (not module.enabled()) {  // skip paused modules
-            return;
-        }
-
-        if (module.expected_format() !=
-            ColorSpace::NONE) {  // retrieve the frame in the requested format
-                                 // and execute the module
-
-            conversions_.get_frame(image, module.expected_format());
-            result = module.execute(image);
-        }
-
-        if (result and *result) {  // neither nullptr nor invalid?
-            auto callback =
-                default_callback_ ? default_callback_ : module.callback();
-
-            if (callback) {
-
-                // Log("API", "Callback for id ", id);
-                TV_ModuleResult res = {result->x, result->y, result->width,
-                                       result->height};
-
-                std::strncpy(res.string, result->result.c_str(),
-                             TV_STRING_SIZE - 1);
-                std::fill(res.string + result->result.size(),
-                          res.string + TV_STRING_SIZE - 1, '\0');
-                res.string[TV_STRING_SIZE - 1] = '\0';
-
-                callback(id, res, nullptr);
-            }
-        }
-
-        auto output = module.modified_image();
-        if (output.header.format != ColorSpace::INVALID) {
-            conversions_.set_frame(output);
-        }
-
-        auto& tags = module.tags();
-        if (tags & ModuleWrapper::Tag::ExecAndRemove) {
-            module.tag(ModuleWrapper::Tag::Removable);
-            camera_control_.release();
-
-        } else if (tags & ModuleWrapper::Tag::ExecAndDisable) {
-            Log("API", "Disabling ExecAndDisable-tagged id ", module.id());
-            module.disable();
-            camera_control_.release();
-        }
-    };
-
     auto node_exec = [&](int16_t module_id) {
-        (void)modules_->exec_one(
-            module_id, [&module_id, &module_exec](ModuleWrapper& module) {
-                module_exec(module_id, module);
-                return TV_OK;
-            });
+        (void)modules_->exec_one(module_id,
+                                 [&module_id, this](ModuleWrapper& module) {
+            module_exec(module_id, module);
+            return TV_OK;
+        });
     };
 
     // mainloop
@@ -245,28 +228,29 @@ void tv::Api::execute(void) {
         // Log("API", "Execution at ", last_loop_time_point);
 
         Image frame;
-        if (active_modules()) {  // This does not account for modules
+
+        if (not paused_ and active_modules()) {  // active_modules() does not
+                                                 // account for modules
             // being 'stopped', i.e. this is true even if all modules are in
             // paused state.  Then, camera_control_ will return the last
             // image retrieved from the camera (and it will be ignored by
             // update_module anyways)
 
-            if (camera_control_.update_frame(frame)) {
+            if (not camera_control_.update_frame(frame)) {
+                LogWarning("API", "Could not retrieve the next frame");
+            } else {
                 conversions_.set_frame(frame);
 
                 if (not _scenes_active()) {
-                    modules_->exec_all(module_exec);
+                    modules_->exec_all();
                 } else {
                     scene_trees_.exec_all(
                         node_exec, camera_control_.latest_frame_timestamp());
                 }
-
-            } else {
-                LogWarning("API", "Could not retrieve the next frame");
             }
 
             // Propagate deletion of modules marked for removal
-            modules_->free_if([](ModuleWrapper const& module) {
+            modules_->remove_if([](ModuleWrapper const& module) {
                 return module.tags() & ModuleWrapper::Tag::Removable;
             });
 
@@ -290,6 +274,30 @@ void tv::Api::execute(void) {
         }
     }
     Log("API", "Mainloop stopped");
+}
+
+int16_t tv::Api::module_run_now(int8_t id) {
+    return modules_->exec_one_now(id, [this, id](ModuleWrapper& module) {
+        assert(module.enable_at_least_once());
+        module_exec(id, module);
+        return TV_OK;
+    });
+}
+
+int16_t tv::Api::module_run_now_new_frame(int8_t id) {
+    return modules_->exec_one_now_restarting(id,
+                                             [this, id](ModuleWrapper& module) {
+        Image frame;
+        assert(module.enable_at_least_once());
+        if (not camera_control_.update_frame(frame)) {
+            LogWarning("API", "Could not retrieve the next frame");
+            return TV_CAMERA_NOT_AVAILABLE;
+        }
+
+        conversions_.set_frame(frame);
+        module_exec(id, module);
+        return TV_OK;
+    });
 }
 
 int16_t tv::Api::set_framesize(uint16_t width, uint16_t height) {
@@ -374,7 +382,7 @@ int16_t tv::Api::module_destroy(int8_t id) {
     /// \todo Is a two-stage-removal process still necessary now that
     /// the allocation stage was removed from SharedResource? Not sure,
     /// probably not.
-    return modules_->exec_one(id, [this](tv::ModuleWrapper& module) {
+    return modules_->exec_one_now(id, [this](tv::ModuleWrapper& module) {
         module.disable();
         module.tag(ModuleWrapper::Tag::Removable);
         camera_control_.release();
@@ -408,8 +416,16 @@ char const* tv::Api::result_string(int16_t code) const {
     return result_string_map_[code];
 }
 
-int16_t tv::Api::is_camera_available(void) {
-    return camera_control_.is_available() ? TV_OK : TV_CAMERA_NOT_AVAILABLE;
+bool tv::Api::is_camera_available(void) {
+    return camera_control_.is_available();
+}
+
+bool tv::Api::is_camera_available(uint8_t id) {
+    return camera_control_.is_available(id);
+}
+
+bool tv::Api::prefer_camera_with_id(uint8_t id) {
+    return camera_control_.switch_to_preferred(id);
 }
 
 int16_t tv::Api::resolution(uint16_t& width, uint16_t& height) {
@@ -449,7 +465,7 @@ int16_t tv::Api::module_id(size_t library, int8_t& id) const {
 }
 
 int16_t tv::Api::library_get_parameter_count(std::string const& libname,
-                                             size_t& count) const {
+                                             uint16_t& count) const {
     if (module_loader_->library_parameter_count(libname, count)) {
         return TV_OK;
     }
@@ -546,15 +562,19 @@ int16_t tv::Api::callback_set(int8_t module_id, TV_Callback callback) {
 
 int16_t tv::Api::callback_default(TV_Callback callback) {
     default_callback_ = callback;
+
+    modules_->exec_all([&callback](int16_t id, ModuleWrapper& module) {
+        (void)module.register_callback(callback);
+    });
+
     return TV_OK;
 }
 
 int16_t tv::Api::get_result(int8_t module_id, TV_ModuleResult& result) {
-    Log("API", "Getting result from module ", module_id);
 
-    return modules_->exec_one(module_id, [&](ModuleWrapper& module) {
+    return modules_->exec_one_now(module_id, [&](ModuleWrapper& module) {
         auto res = module.result();
-        if (res) {
+        if (not res) {
             return TV_RESULT_NOT_AVAILABLE;
         }
 
@@ -563,8 +583,6 @@ int16_t tv::Api::get_result(int8_t module_id, TV_ModuleResult& result) {
         result.width = res.width;
         result.height = res.height;
         std::strncpy(result.string, res.result.c_str(), TV_STRING_SIZE - 1);
-        std::fill(result.string + res.result.size(),
-                  result.string + TV_STRING_SIZE - 1, '\0');
         result.string[TV_STRING_SIZE - 1] = '\0';
         return TV_OK;
     });
@@ -586,7 +604,7 @@ std::string const& tv::Api::system_module_path(void) const {
 void tv::Api::remove_all_modules(void) {
     _disable_all_modules();
 
-    modules_->free_all();
+    modules_->remove_all();
     idle_process_running_ = false;
     Log("Api", "All modules released");
 }
@@ -606,6 +624,13 @@ bool tv::Api::library_get_name_and_path(uint16_t count, std::string& name,
 
 int16_t tv::Api::_module_load(std::string const& name, int16_t id) {
     Log("API", "ModuleLoad ", name, " ", id);
+#ifndef DEFAULT_CALL
+    uint16_t ms = DELAY_GRAIN * (GRAINS - 2);
+#else
+    uint16_t ms = 1000;
+#endif
+    auto start = std::chrono::steady_clock::now();
+    auto maxend = start + std::chrono::milliseconds(ms);
 
     if ((*modules_)[id]) {
         return TV_INVALID_ID;
@@ -628,29 +653,61 @@ int16_t tv::Api::_module_load(std::string const& name, int16_t id) {
     }
 
     // Add modules to managed objects and register destruction handler
-    if (not modules_->insert(id, module, [this](ModuleWrapper& module) {
-            module_loader_->destroy_module(&module);
-        })) {
+    std::thread(
+        [this, module, id](void) {
+            if (not modules_->insert(id, module, [this](ModuleWrapper& module) {
+                    module_loader_->destroy_module(&module);
+                })) {
 
-        camera_control_.release();
-        return TV_MODULE_INITIALIZATION_FAILED;
+                camera_control_.release();
+                LogError("API", "Inserting a module failed");
+                return;
+                // return TV_MODULE_INITIALIZATION_FAILED;
+            }
+            done_.test_and_set();
+        }).detach();
+
+    std::this_thread::sleep_until(maxend);
+    if (done_.test_and_set()) {  // module loaded
+        std::thread([this, module](void) {
+                        /// Add the default callback to each new module
+                        if (default_callback_) {
+                            module->register_callback(default_callback_);
+                        }
+
+                        /// \todo Catch the cases in which this fails and remove
+                        /// the
+                        /// module.
+                        (void)module->enable();
+                    }).detach();
+        return TV_OK;
+    } else {
+        std::thread([this, id](void) {
+                        std::this_thread::sleep_for(std::chrono::milliseconds(
+                            2000));  // should be loaded now
+                        module_destroy(id);
+                    }).detach();
+
+        return TV_BUSY;
     }
-
-    /// \todo Catch the cases in which this fails and remove the module.
-    (void)module->enable();
-    return TV_OK;
 }
 
 void tv::Api::_disable_all_modules(void) {
+
+    paused_ = true;
+    modules_->interrupt();
     modules_->exec_all([this](int16_t id, tv::ModuleWrapper& module) {
         module.disable();
         camera_control_.release();
     });
+    paused_ = false;
 }
 
 void tv::Api::_disable_module_if(
     std::function<bool(tv::ModuleWrapper const& module)> predicate) {
 
+    paused_ = true;
+    modules_->interrupt();
     modules_->exec_all(
         [this, &predicate](int16_t id, tv::ModuleWrapper& module) {
             if (predicate(module)) {
@@ -658,9 +715,12 @@ void tv::Api::_disable_module_if(
                 camera_control_.release();
             }
         });
+    paused_ = false;
 }
 
 void tv::Api::_enable_all_modules(void) {
+    paused_ = true;
+    modules_->interrupt();
     modules_->exec_all([this](int16_t id, tv::ModuleWrapper& module) {
         if (not module.enabled()) {
             if (camera_control_.acquire()) {
@@ -668,10 +728,11 @@ void tv::Api::_enable_all_modules(void) {
             }
         }
     });
+    paused_ = false;
 }
 
 int16_t tv::Api::_enable_module(int16_t id) {
-    return modules_->exec_one(id, [this](tv::ModuleWrapper& module) {
+    return modules_->exec_one_now(id, [this](tv::ModuleWrapper& module) {
         if (module.enabled() or camera_control_.acquire()) {
             module.enable();  // possibly redundant
             return TV_OK;
@@ -682,7 +743,7 @@ int16_t tv::Api::_enable_module(int16_t id) {
 }
 
 int16_t tv::Api::_disable_module(int16_t id) {
-    return modules_->exec_one(id, [this](tv::ModuleWrapper& module) {
+    return modules_->exec_one_now(id, [this](tv::ModuleWrapper& module) {
         module.disable();
         camera_control_.release();
         return TV_OK;

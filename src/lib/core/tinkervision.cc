@@ -31,11 +31,42 @@
 #include <string>
 #include <cstring>
 #include <cassert>
+#include <atomic>
+#include <thread>
 
 #include "api.hh"
 #include "logger.hh"
 
 extern "C" {
+
+#ifndef DEFAULT_CALL
+static std::atomic_int tv_buffered_result{
+    TV_OK};  ///< If an op takes too long, buffer for the
+             /// result, retrievable with get_buffered_result()
+static std::atomic_flag tv_buffer_flag{
+    ATOMIC_FLAG_INIT};  ///< Used to signal an operation is finished
+
+#define LOW_LATENCY_CALL(code)                                                \
+    tv_buffered_result = TV_RESULT_BUFFERED;                                  \
+    if (tv_buffer_flag.test_and_set()) {                                      \
+        return tv_buffered_result;                                            \
+    }                                                                         \
+    std::thread([&](void) {                                                   \
+        tv_buffered_result.store(code);                                       \
+        tv_buffer_flag.clear();                                               \
+                }).detach();                                                  \
+    bool set(true);                                                           \
+    for (uint8_t i = 0; i < GRAINS and (set = tv_buffer_flag.test_and_set()); \
+         ++i) {                                                               \
+        std::this_thread::sleep_for(std::chrono::milliseconds(DELAY_GRAIN));  \
+    }                                                                         \
+    if (not set) {                                                            \
+        tv_buffer_flag.clear(); /* set in for-loop */                         \
+    }                                                                         \
+    return static_cast<int16_t>(tv_buffered_result.load());
+#else
+#define LOW_LATENCY_CALL(code) return code
+#endif
 
 //
 // Utilities
@@ -56,9 +87,46 @@ int16_t tv_valid(void) {
     return tv::get_api().valid() ? TV_OK : TV_INTERNAL_ERROR;
 }
 
+int16_t tv_latency_test(void) {
+    tv::Log("Tinkervision::LatencyTest:");
+
+    LOW_LATENCY_CALL([](void) { return TV_OK; }());
+}
+
+int16_t tv_duration_test(uint16_t milliseconds) {
+    tv::Log("Tinkervision::LatencyTest", milliseconds);
+    LOW_LATENCY_CALL([&milliseconds](void) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(milliseconds));
+        return TV_OK;
+    }());
+}
+
+#ifndef DEFAULT_CALL
+/// Get the buffered result, if available.
+/// \return
+///    - #TV_RESULT_BUFFERED until the result is available
+///    - result of the last buffered op else.
+int16_t tv_get_buffered_result(void) {
+    return static_cast<int16_t>(tv_buffered_result.load());
+}
+#endif
+
 int16_t tv_camera_available(void) {
-    tv::Log("Tinkervision::CameraAvailable");
-    return tv::get_api().is_camera_available();
+    tv::Log("Tinkervision::CameraAvailable:");
+    return tv::get_api().is_camera_available() ? TV_OK
+                                               : TV_CAMERA_NOT_AVAILABLE;
+}
+
+int16_t tv_camera_id_available(uint8_t id) {
+    tv::Log("Tinkervision::CameraIdAvailable", id);
+    return tv::get_api().is_camera_available(id) ? TV_OK
+                                                 : TV_CAMERA_NOT_AVAILABLE;
+}
+
+int16_t tv_prefer_camera_with_id(uint8_t id) {
+    tv::Log("Tinkervision::PreferCameraWithId", id);
+    return tv::get_api().prefer_camera_with_id(id) ? TV_OK
+                                                   : TV_CAMERA_NOT_AVAILABLE;
 }
 
 int16_t tv_stop(void) {
@@ -74,6 +142,14 @@ int16_t tv_start(void) {
 
 int16_t tv_quit(void) {
     tv::Log("Tinkervision::Quit");
+
+#ifndef DEFAULT_CALL
+    // Wait for any running operations to finish
+    while (tv_buffer_flag.test_and_set())
+        ;
+    tv_buffer_flag.clear();
+#endif
+
     return tv::get_api().quit();
 }
 
@@ -165,8 +241,7 @@ int16_t tv_library_parameters_count(char const* libname, uint16_t* count) {
     tv::Log("Tinkervision::LibraryParameterCount", libname);
     /// \todo Fix types: size_t vs uint16_t
     *count = 0;
-    return tv::get_api().library_get_parameter_count(libname,
-                                                     *(size_t*)(count));
+    return tv::get_api().library_get_parameter_count(libname, *count);
 }
 
 int16_t tv_library_parameter_describe(char const* libname, uint16_t parameter,
@@ -200,12 +275,22 @@ int16_t tv_module_start(char const* name, int8_t* id) {
 
 int16_t tv_module_stop(int8_t id) {
     tv::Log("Tinkervision::ModuleStop", id);
-    return tv::get_api().module_stop(id);
+    LOW_LATENCY_CALL(tv::get_api().module_stop(id));
 }
 
 int16_t tv_module_restart(int8_t id) {
     tv::Log("Tinkervision::ModuleRestart", id);
-    return tv::get_api().module_start(id);
+    LOW_LATENCY_CALL(tv::get_api().module_start(id));
+}
+
+int16_t tv_module_run_now(int8_t id) {
+    tv::Log("Tinkervision::ModuleRestart", id);
+    LOW_LATENCY_CALL(tv::get_api().module_run_now(id));
+}
+
+int16_t tv_module_run_now_new_frame(int8_t id) {
+    tv::Log("Tinkervision::ModuleRestart", id);
+    LOW_LATENCY_CALL(tv::get_api().module_run_now_new_frame(id));
 }
 
 int16_t tv_module_is_active(int8_t id, uint8_t* active) {
@@ -218,7 +303,7 @@ int16_t tv_module_is_active(int8_t id, uint8_t* active) {
 
 int16_t tv_module_remove(int8_t id) {
     tv::Log("Tinkervision::ModuleRemove", id);
-    return tv::get_api().module_destroy(id);
+    LOW_LATENCY_CALL(tv::get_api().module_destroy(id));
 }
 
 int16_t tv_module_get_name(int8_t module_id, char name[]) {
@@ -238,8 +323,10 @@ int16_t tv_module_get_result(int8_t module, TV_ModuleResult* result) {
 
 int16_t tv_remove_all_modules(void) {
     tv::Log("Tinkervision::RemoveAllModules");
-    tv::get_api().remove_all_modules();
-    return TV_OK;
+    LOW_LATENCY_CALL([](void) {
+        tv::get_api().remove_all_modules();
+        return TV_OK;
+    }());
 }
 
 //
