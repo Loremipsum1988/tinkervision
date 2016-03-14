@@ -24,7 +24,7 @@
 /// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
 /// USA.
 
-#include "Cascadeclassifier.hh"
+#include "cascadeclassifier.hh"
 
 using namespace cv;
 using namespace tv;
@@ -39,7 +39,7 @@ void tv::Cascadeclassifier::setup_haarmodel(void) {
 	classifier.clear();
 
 	// if path_to_model_ is a single xml file
-	if(!is_directory(path_to_model_) && file_name.substr(file_name.find_last_of(".") + 1) == "xml"){
+	if(!is_directory(path_to_model_) && path_to_model_.substr(path_to_model_.find_last_of(".") + 1) == "xml"){
 		classifier.push_back(std::unique_ptr < cv::CascadeClassifier> (new cv::CascadeClassifier(path_to_model_)));
 		return;
 	}
