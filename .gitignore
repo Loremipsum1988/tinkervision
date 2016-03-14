@@ -47,6 +47,7 @@ src/test/*/*
 !src/test/*/*.cc
 !src/test/*/Makefile
 !src/test/*/*.py
+!src/test/*/*/*.py
 
 # Documentation
 doc
