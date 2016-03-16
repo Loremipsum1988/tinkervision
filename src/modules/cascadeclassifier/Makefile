@@ -38,6 +38,9 @@ clean:
 prefix	:= /usr
 
 install: $(SO)
+	mkdir -p /home/tf/tv/lib/model
+	cp ./model/*.xml /home/tf/tv/lib/model/
 	install -m 544 $(SO) $(PRE)/$(SO)
+	
 
 .PHONY: install

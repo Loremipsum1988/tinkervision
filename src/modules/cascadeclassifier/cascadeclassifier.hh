@@ -54,6 +54,7 @@ private:
 	double user_image_scale_;
 
 	std::vector<std::unique_ptr<cv::CascadeClassifier>> classifier;
+	std::vector < cv::Rect > found_objects;
 
 	// path to haar files
 	std::string path_to_model_ { "/home/tf/tv/lib/model/" };
@@ -97,7 +98,7 @@ protected:
 			override final;
 
 	bool has_result(void) const override final {
-		return (true);
+		return ((found_objects.size() > 0 ? true : false));
 	}
 
 	Result const& get_result(void) const override {
@@ -110,10 +111,10 @@ protected:
 		return (ColorSpace::BGR888);
 	}
 
-	/// This module modify the image.
-	/// \return true.
+	/// This module can modify the image .
+	/// \return true id draw_rectangle_ is set to true.
 	bool outputs_image(void) const override final {
-		return (true);
+		return (draw_rectangle_);
 	}
 
 	/// Declare that this module can generate a result.
