@@ -24,10 +24,27 @@
 #include "tinkervision/tinkervision.h"
 
 int8_t id = 0;
+int8_t id_2 = 2;
+
+uint16_t modules_count;
+bool should_end = false;
 
 void callback(int8_t id, TV_ModuleResult result, void* context) {
-	printf("Cascadeclassifier: Modul-ID:%d --- X:%d Y:%d String:%s \n", id,
-			result.x, result.y, result.string);
+	printf("Cascadeclassifier: Modul-ID:%d --- X:%d Y:%d \n", id, result.x,
+			result.y);
+
+	printf("Finished Cascadeclassifier\n");
+
+	if(id != 2){
+		tv_module_remove(id);
+		printf("Removed module %d\n", id);
+		sleep(2);
+	}
+
+	tv_get_loaded_libraries_count(&modules_count);
+	printf("Loaded libs: %d\n", modules_count);
+
+	should_end = true;
 }
 
 void test_without_grayscale() {
@@ -55,7 +72,7 @@ void test_single_xmlfile() {
 	printf("test_single_xmlfile\n");
 
 	int16_t result = tv_module_set_string_parameter(id, "path_to_model",
-			"/home/tf/tv/lib/model/haarcascade_frontalface_default.xml");
+			"/home/tf/tv/lib/model/haarcascade_frontalface.xml");
 	printf("Set path_to_model: Code %d (%s)\n", result,
 			tv_result_string(result));
 
@@ -78,21 +95,29 @@ int main(int argc, char* argv[]) {
 	printf("Configured module id %d: Code %d (%s)\n", id, result,
 			tv_result_string(result));
 
+	if (result != 0) {
+		tv_module_remove(id);
+		printf("ERROR-Code: %d", result);
+		printf("Removed module %d\n", id);
+		return (-1);
+	}
+
+	tv_get_loaded_libraries_count(&modules_count);
+	printf("Loaded libs: %d\n", modules_count);
+
 	result = tv_callback_enable_default(callback);
 	printf("Set callback: Code %d (%s)\n", result, tv_result_string(result));
 	sleep(1);
 
-	test_without_grayscale();
-	test_switch_path();
-	test_single_xmlfile();
+	// test_without_grayscale();
+	// test_switch_path();
+	// test_single_xmlfile();
 
-	/* Remove module
-	 result = tv_module_remove(id);
-	 printf("Removed module %d: Code %d (%s)\n", id, result,
-	 tv_result_string(result));
-	 */
-	sleep(2);
-	printf("Finished Cascadeclassifier\n");
+	unsigned counter = 0;
+	while (!should_end) {
+		sleep(1);
+		printf("%d\n", ++counter);
+	}
 
 	return (0);
 }

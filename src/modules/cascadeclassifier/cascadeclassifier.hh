@@ -41,9 +41,10 @@ namespace tv {
 class Cascadeclassifier: public Module {
 private:
 	// default values
-	uint8_t const object_size { 30 };
-	double const min_image_scale { 1.1 };
-	uint8_t const min_neighbors_ { 2 };
+	// http://fewtutorials.bravesites.com/entries/emgu-cv-c/level-3c---how-to-improve-face-detection
+	uint8_t const object_size { 24 };
+	double const default_image_scale { 4 };
+	uint8_t const min_neighbors_ { 5 };
 
 	bool draw_rectangle_ { true };	// draw rectangle around found objects
 	bool use_grayscale_ { true };	// process object detection on a grayscale image
@@ -54,7 +55,6 @@ private:
 	double user_image_scale_;
 
 	std::vector<std::unique_ptr<cv::CascadeClassifier>> classifier;
-	std::vector < cv::Rect > found_objects;
 
 	// path to haar files
 	std::string path_to_model_ { "/home/tf/tv/lib/model/" };
@@ -65,8 +65,7 @@ private:
 public:
 	Cascadeclassifier(Environment const& envir) :
 			Module("cascadeclassifier", envir), user_min_object_size_(object_size), user_max_object_size_(
-					object_size), user_min_neighbors_(min_neighbors_), user_image_scale_(
-					min_image_scale) {
+					object_size), user_min_neighbors_(min_neighbors_), user_image_scale_(default_image_scale) {
 
 		register_all_parameter();
 		setup_haarmodel();
@@ -98,7 +97,7 @@ protected:
 			override final;
 
 	bool has_result(void) const override final {
-		return ((found_objects.size() > 0 ? true : false));
+		return (true);
 	}
 
 	Result const& get_result(void) const override {
