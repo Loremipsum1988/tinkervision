@@ -65,7 +65,7 @@ private:
 public:
 	Cascadeclassifier(Environment const& envir) :
 			Module("cascadeclassifier", envir), user_min_object_size_(object_size), user_max_object_size_(
-					object_size), user_min_neighbors_(min_neighbors_), user_image_scale_(default_image_scale) {
+					object_size), user_min_neighbors_(min_neighbors_), user_image_scale_( 1 + default_image_scale / 10.0) {
 
 		register_all_parameter();
 		setup_haarmodel();

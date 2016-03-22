@@ -154,7 +154,7 @@ void tv::Cascadeclassifier::execute(tv::ImageHeader const& header,
 	std::vector < cv::Rect > found_objects;
 	for (unsigned i = 0; i < classifier.size(); i++) {
 		(classifier.at(i))->detectMultiScale(frame, found_objects,
-				1.5, user_min_neighbors_, 0 | CV_HAAR_SCALE_IMAGE,
+				user_image_scale_, user_min_neighbors_, 0 | CV_HAAR_SCALE_IMAGE,
 				Size(user_min_object_size_, user_max_object_size_));
 	}
 
