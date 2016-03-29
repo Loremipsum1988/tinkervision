@@ -32,25 +32,21 @@ int main(int argc, char* argv[]) {
 
     result = tv_camera_available();
     if (result != 0) {
-    	/*
         printf("Requested camera not available: %s\n",
                tv_result_string(result));
-        */
         exit(-1);
     }
-
     sleep(1);
 
-    result = tv_module_start("medianBlur", &id);
+    result = tv_module_start("medianblur", &id);
     printf("Configured medianBlur id %d: Code %d (%s)\n", id, result,
            tv_result_string(result));
 
-    sleep(10);
+    sleep(3);
 
     result = tv_module_remove(id);
     printf("Stopped medianBlur %d: Code %d (%s)\n", id, result,
            tv_result_string(result));
 
-    /* quit(); */
     return (0);
 }
