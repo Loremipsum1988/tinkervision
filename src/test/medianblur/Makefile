@@ -5,8 +5,8 @@ INC	:= `pkg-config --cflags opencv`
 LDFLAGS := -g -Wall -lstdc++ -ltinkervision -lm -lv4l2 \
            `pkg-config --libs opencv`
 
-OBJ	:= tv_medianBlur.o
-OUT	:= tv-medianBlur
+OBJ	:= tv_medianblur.o
+OUT	:= tv-medianblur
 
 all: test
 

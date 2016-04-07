@@ -34,7 +34,7 @@ int main(int argc, char* argv[]) {
     if (result != 0) {
         printf("Requested camera not available: %s\n",
                tv_result_string(result));
-        exit(-1);
+        return(-1);
     }
     sleep(1);
 
