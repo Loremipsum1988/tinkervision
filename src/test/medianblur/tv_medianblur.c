@@ -26,7 +26,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 int main(int argc, char* argv[]) {
 	int8_t id = 0;
 	int16_t result = TV_INTERNAL_ERROR;
-	uint8_t kSize = 3;
+	/* uint8_t kSize = 3; */
 
 	printf("Started medianBlur \n");
 
