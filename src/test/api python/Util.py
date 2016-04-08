@@ -2,7 +2,7 @@
 class Helper:
     HOST = "localhost"
     PORT = 4223
-    UID = "3dfBkF" # FIXME change UID
+    UID = "3dfBkF"  # FIXME change UID
     red = None
     ipcon = None
 
@@ -32,3 +32,8 @@ class Helper:
             print "[" + module_name + "] TV Running Modules = " + str(ids)
         else:
             print "TV Running Modules = " + str(ids)
+
+    @staticmethod
+    def vision_callback(module_id, x, y, w, h, msg):
+        print "[Helper] Vision Callback: " + str(module_id) + ", " + str(x) + ", " + str(y) + ", " + str(w) + ", " + \
+              str(h) + ", " + str(msg)
