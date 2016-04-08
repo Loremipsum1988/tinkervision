@@ -421,7 +421,7 @@ public:
 		if (((*modules_)[module_id]->tags() & ModuleWrapper::Tag::ExecAndRemove)
 				or ((*modules_)[module_id]->tags()
 						& ModuleWrapper::Tag::Removable)) {
-			return (TV_NOT_IMPLEMENTED);
+			return (TV_INVALID_ID);	// FIXME: Need a better error no
 		}
 
 		*scene_id = _next_scene_id();
