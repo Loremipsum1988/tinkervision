@@ -41,9 +41,10 @@ namespace tv {
 class Cascadeclassifier: public Module {
 private:
 	// default values
-	uint8_t const object_size { 30 };
-	double const min_image_scale { 1.1 };
-	uint8_t const min_neighbors_ { 2 };
+	// http://fewtutorials.bravesites.com/entries/emgu-cv-c/level-3c---how-to-improve-face-detection
+	uint8_t const object_size { 24 };
+	double const default_image_scale { 4 };
+	uint8_t const min_neighbors_ { 5 };
 
 	bool draw_rectangle_ { true };	// draw rectangle around found objects
 	bool use_grayscale_ { true };	// process object detection on a grayscale image
@@ -64,8 +65,7 @@ private:
 public:
 	Cascadeclassifier(Environment const& envir) :
 			Module("cascadeclassifier", envir), user_min_object_size_(object_size), user_max_object_size_(
-					object_size), user_min_neighbors_(min_neighbors_), user_image_scale_(
-					min_image_scale) {
+					object_size), user_min_neighbors_(min_neighbors_), user_image_scale_( 1 + default_image_scale / 10.0) {
 
 		register_all_parameter();
 		setup_haarmodel();
@@ -110,10 +110,10 @@ protected:
 		return (ColorSpace::BGR888);
 	}
 
-	/// This module modify the image.
-	/// \return true.
+	/// This module can modify the image .
+	/// \return true id draw_rectangle_ is set to true.
 	bool outputs_image(void) const override final {
-		return (true);
+		return (draw_rectangle_);
 	}
 
 	/// Declare that this module can generate a result.

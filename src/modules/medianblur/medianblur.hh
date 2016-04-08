@@ -41,13 +41,13 @@ namespace tv {
 // filter for removing salt-and-pepper noise.
 class MedianBlur: public Module {
 private:
-	// Defines the size of the kernel to be used (of width w pixels and height h pixels)
+	// ksize – aperture linear size; it must be odd and greater than 1, for example: 3, 5, 7
 	uint8_t kSize;
 
 public:
 	MedianBlur(Environment const& envir) :
-			Module("medianBlur",envir) {
-		kSize = 3;
+			Module("medianblur",envir), kSize(3) {
+		register_parameter("kSize", 3, 25, 3);
 	}
 	~MedianBlur(void) override = default;
 
@@ -74,7 +74,8 @@ protected:
 	// Parameter handling ----------------------------
     void value_changed(std::string const& parameter,
                        int32_t value) override final {
-		kSize = static_cast<uint8_t>(value);
+    	if(value > 1 && value % 2 )
+    		kSize = static_cast<uint8_t>(value);
 	}
 };
 }

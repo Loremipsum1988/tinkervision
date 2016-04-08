@@ -1,4 +1,4 @@
-MODULES	:= colormatch grayfilter dummy motiondetect snapshot downscale
+MODULES	:= colormatch grayfilter dummy motiondetect snapshot downscale cascadeclassifier medianblur
 HERE		:= $(shell pwd)
 
 ifndef PRE
