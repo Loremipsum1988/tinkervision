@@ -23,15 +23,15 @@ def tearDownModule():
 
 # FIXME no solution! just a workaround!
 setUpModule()
-# from modules.Colormatch import Colormatch
-# from modules.Downscale import Downscale
-# from modules.Functions import Functions
-# from modules.Grayfilter import Grayfilter
-# from modules.Module import Module
-# from modules.Motiondetect import Motiondetect
+from modules.Colormatch import Colormatch
+from modules.Downscale import Downscale
+from modules.Functions import Functions
+from modules.Grayfilter import Grayfilter
+from modules.Module import Module
+from modules.Motiondetect import Motiondetect
 from modules.Scenes import Scenes
-# from modules.Snapshot import Snapshot
-# from modules.Stream import Stream
+from modules.Snapshot import Snapshot
+from modules.Stream import Stream
 # tearDownModule() # TODO how to export test classes?!
 
 ##### MAIN
