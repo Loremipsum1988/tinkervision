@@ -411,7 +411,7 @@ public:
 
 	/// Start a scene which is a directed chain of modules.
 	int16_t scene_start(int8_t module_id, int16_t* scene_id) {
-		Log("API", "Starting scene");
+		Log("Api", "Starting scene");
 
 		if (not modules_->managed(module_id)) {
 			return (TV_INVALID_ID);
@@ -430,7 +430,7 @@ public:
 
 	/// Remove a scene
 	int16_t scene_remove(int16_t scene_id) {
-		Log("API", "Removing scene: ", scene_id);
+		Log("Api", "Removing scene: ", scene_id);
 		return (scene_trees_.remove_scene(scene_id));
 	}
 
@@ -438,7 +438,7 @@ public:
 	/// \param[in] scene_id
 	/// \param[in] module_id
 	int16_t add_to_scene(int16_t scene_id, int16_t module_id) {
-		Log("API", "Add to scene: ", module_id, " -> ", scene_id);
+		Log("Api", "Add to scene: ", module_id, " -> ", scene_id);
 		// return TV_NOT_IMPLEMENTED; //FIXME: Is not yet finished
 
 		// module is tagged so it will not be added to the scene
@@ -461,14 +461,14 @@ public:
 	///  Disable a scene
 	/// \param[in] scene_id
 	int16_t scene_disable(int16_t scene_id) {
-		Log("API", "Disabling scene: ", scene_id);
+		Log("Api", "Disabling scene: ", scene_id);
 		return (scene_trees_.disable_scene(scene_id));
 	}
 
 	/// Enable a scene
 	/// \param[in] scene_id
 	int16_t scene_enable(int16_t scene_id) {
-		Log("API", "Enabling scene: ", scene_id);
+		Log("Api", "Enabling scene: ", scene_id);
 		return (scene_trees_.enable_scene(scene_id));
 	}
 
