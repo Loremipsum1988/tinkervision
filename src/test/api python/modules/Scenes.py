@@ -30,10 +30,10 @@ class Scenes(unittest.TestCase):
         self.assertEqual(self.module1.result, TVE.TV_OK)
         self.assertEqual(self.module2.result, TVE.TV_OK)
 
-    def test_scenes(self):
+    def test_start_add_remove(self):
         self.vis = Helper.red.vision_scene_start(self.module1.id)
-        print self.vis
         self.assertEqual(self.vis.result, TVE.TV_OK)
+        self.assertEqual(Helper.red.vision_scene_add(self.vis.scene_id, self.module2.id), TVE.TV_OK)
         self.assertEqual(Helper.red.vision_scene_remove(self.vis.scene_id), TVE.TV_OK)
 
 
