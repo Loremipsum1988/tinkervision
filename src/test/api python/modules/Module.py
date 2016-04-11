@@ -9,7 +9,7 @@ class Module(unittest.TestCase):  # Change TEST to Name <-----------------------
     @classmethod
     def setUpClass(cls):
         cls.name = "Module"
-        cls.mod_name = "grayfilter"
+        cls.mod_name = "motiondetect"
         cls.module = Helper.start_module(cls.mod_name)
         print "[" + cls.name + "] Starting Tests."
         Helper.show_running_modules(cls.name)
@@ -61,7 +61,11 @@ class Module(unittest.TestCase):  # Change TEST to Name <-----------------------
         # def vision_module_remove(self, id): # remove the new module
         Helper.show_running_modules(self.name)
         self.assertEqual(Helper.red.vision_module_remove(tmp_module.id), TVE.TV_OK)
-        # import time
-        # time.sleep(5)
+        import time
+        time.sleep(5)
+        tmp = Helper.red.vision_libs_loaded_count()
+        self.assertEqual(tmp.result, TVE.TV_OK)
+        self.assertEqual(tmp.count, 2)
+
         self.assertEqual(tmp.count, 1)
         Helper.show_running_modules(self.name)

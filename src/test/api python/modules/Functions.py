@@ -79,8 +79,7 @@ class Functions(unittest.TestCase):
 
         # def vision_lib_set_user_prefix(self, path):
         new_path = "/home/tf/"
-        self.assertEqual(Helper.red.vision_lib_set_user_prefix(new_path),
-                         TVE.TV_OK)
+        self.assertEqual(Helper.red.vision_lib_set_user_prefix(new_path), TVE.TV_OK)
 
     def test_error_Discriptions(self):
         # look at TvErrorCodes.py
@@ -153,10 +152,3 @@ class Functions(unittest.TestCase):
         # TV_GLOBAL_CALLBACK_ACTIVE = -62
         self.assertEqual(Helper.red.vision_get_error_description(TVE.TV_GLOBAL_CALLBACK_ACTIVE),
                          "Global callback is active")
-
-# Static Stuff
-
-# #Scene Stuff
-# def vision_scene_start(self, module_id):
-# def vision_scene_add(self, scene_id, module_id):
-# def vision_scene_remove(self, scene_id):
