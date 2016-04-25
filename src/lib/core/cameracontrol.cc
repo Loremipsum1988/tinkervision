@@ -122,9 +122,12 @@ bool tv::CameraControl::preselect_framesize(uint16_t framewidth,
         std::lock_guard<std::mutex> cam_mutex(camera_mutex_);
 
         if (not _init()) {
+        	Log("CAMERA_CONTROL", "preselect_framesize (init) faild WxH", requested_width_, requested_height_);
+
             requested_width_ = old_width;
             requested_height_ = old_height;
             return false;
+
         } else {
             uint16_t width, height;
             size_t bytesize;
@@ -133,6 +136,8 @@ bool tv::CameraControl::preselect_framesize(uint16_t framewidth,
             stop_camera();
 
             if ((width != framewidth) or (height != frameheight)) {
+            	Log("CAMERA_CONTROL", "preselect_framesize (check) faild WxH", requested_width_, requested_height_);
+
                 requested_width_ = old_width;
                 requested_height_ = old_height;
                 return false;
