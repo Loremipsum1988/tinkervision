@@ -58,6 +58,12 @@ int main(int argc, char* argv[]) {
 			tv_result_string(result));
 	sleep(2);
 
+	result = tv_module_set_string_parameter(id, "prefix", "snap-");
+	printf("Snapshot setting correct prefix: %d (%s)\n", result,
+			tv_result_string(result));
+	sleep(2);
+
+
 	result = tv_module_remove(id);
 	printf("Remove module: %d (%s)\n", result,
 			tv_result_string(result));
