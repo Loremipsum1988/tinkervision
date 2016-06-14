@@ -86,16 +86,13 @@ class Snapshot(unittest.TestCase):
         long = "thisIsAVeryLongPrefixForAPictureIGuessItCouldBeToLongMaybeMaybeNotWeWillSee"
         empty = ""
         illegal = "/Hello!!$%&/()=?"
-        wrong_type = None
         id = self.module.id
         self.assertEqual(Helper.red.vision_string_parameter_set(id, "prefix", long),
-                         TVE.TV_MODULE_ERROR_SETTING_PARAMETER)
+                         TVE.TV_OK)
         self.assertEqual(Helper.red.vision_string_parameter_set(id, "prefix", empty),
-                         TVE.TV_MODULE_ERROR_SETTING_PARAMETER)
+                         TVE.TV_OK)
         self.assertEqual(Helper.red.vision_string_parameter_set(id, "prefix", illegal),
-                         TVE.TV_MODULE_ERROR_SETTING_PARAMETER)
-        # TODO: Check for wrong type
-        # self.assertEqual(V.red.vision_string_parameter_set(id, "prefix", wrong_type), TVE.TV_MODULE_ERROR_SETTING_PARAMETER)
+                         TVE.TV_OK)
 
     def test_prefix_Normal(self):
         new_value = "newPrefix"

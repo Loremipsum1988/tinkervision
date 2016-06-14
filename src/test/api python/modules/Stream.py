@@ -47,24 +47,22 @@ class Stream(unittest.TestCase):
     # def test_string(self):
     #     print "[" + str(self.name) + "] No String Parameter to Test!"
 
-    def test_url_Different(self):
-        id = self.module.id
-        long = "thisIsAVeryLongPrefixForAPictureIGuessItCouldBeToLongMaybeMaybeNotWeWillSee"
-        empty = ""
-        illegal = "/Hello!!$%&/()=?"
-        id = self.module.id
-        self.assertEqual(Helper.red.vision_string_parameter_set(id, "url", long),
-                         TVE.TV_MODULE_ERROR_SETTING_PARAMETER)
-        self.assertEqual(Helper.red.vision_string_parameter_set(id, "url", empty),
-                         TVE.TV_MODULE_ERROR_SETTING_PARAMETER)
-        self.assertEqual(Helper.red.vision_string_parameter_set(id, "url", illegal),
-                         TVE.TV_MODULE_ERROR_SETTING_PARAMETER)
+    # def test_url_Different(self):
+    #     id = self.module.id
+    #     long = "thisIsAVeryLongPrefixForAPictureIGuessItCouldBeToLongMaybeMaybeNotWeWillSee"
+    #     empty = ""
+    #     illegal = "/Hello!!$%&/()=?"
+    #     id = self.module.id
+    #     self.assertEqual(Helper.red.vision_string_parameter_set(id, "url", long),
+    #                      TVE.TV_MODULE_ERROR_SETTING_PARAMETER)
+    #     self.assertEqual(Helper.red.vision_string_parameter_set(id, "url", empty),
+    #                      TVE.TV_MODULE_ERROR_SETTING_PARAMETER)
+    #     self.assertEqual(Helper.red.vision_string_parameter_set(id, "url", illegal),
+    #                      TVE.TV_MODULE_ERROR_SETTING_PARAMETER)
 
     def test_url_Normal(self):
+        # Parameter url can't be set!
         new_value = "stream"
-        # new_value = "/stream"
-        # new_value = "/stream/"
-        # new_value = "loclahost:4444/stream"
         id = self.module.id
-        self.assertEqual(Helper.red.vision_string_parameter_set(id, "url", new_value), TVE.TV_OK)
-        self.assertEqual(Helper.red.vision_string_parameter_get(id, "url").value, new_value)
+        self.assertEqual(Helper.red.vision_string_parameter_set(id, "url", new_value), TVE.TV_MODULE_ERROR_SETTING_PARAMETER)
+        # self.assertEqual(Helper.red.vision_string_parameter_get(id, "url").value, new_value)
