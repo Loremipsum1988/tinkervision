@@ -165,8 +165,6 @@ void tv::Cascadeclassifier::execute(tv::ImageHeader const& header,
 					cv::Point(i->x + i->width, i->y + i->height),
 					CV_RGB(255, 0, 0), 2);
 		}
-
-		imwrite("found.png", cv_dest);
 	}
 
 	if (!found_objects.empty())

@@ -82,7 +82,7 @@ bool tv::Environment::set_user_prefix(std::string const& path) {
         not is_directory(dir + SCRIPTS_FOLDER) or
         not Environment::python_.set_path(dir + SCRIPTS_FOLDER)) {
 
-        Log("ENVIRONMENT", "Can't set user prefix to ", dir);
+        Log("ENVIRONMENT", "Can't set user prefix to ", dir , " due to missing subfolders ", MODULES_FOLDER, " ", DATA_FOLDER, " ", SCRIPTS_FOLDER);
         return false;
     }
 

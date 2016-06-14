@@ -40,6 +40,11 @@ bool tv::NumericalParameter::get(int32_t& value) const {
 }
 
 bool tv::StringParameter::set(std::string const& value) {
+	if (not verify_){ // For parameters without a verify
+		value_ = value;
+		return (true);
+	}
+
     if (verify_ and verify_(value_, value)) {
         value_ = value;
         return true;

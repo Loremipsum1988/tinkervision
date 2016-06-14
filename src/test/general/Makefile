@@ -6,10 +6,15 @@ LDFLAGS := -g -Wall -ltinkervision -lstdc++ -lm -lv4l2 `pkg-config --libs opencv
 
 OBJ	:= tfv_test_api.o
 OUT	:= tfv-test-api
+OBJ1 := tfv_test_framesize.o
+OUT1 := tfv-test_framesize
 
-all: test
+
+all: test test1
 
 test: $(OUT)
+
+test1: $(OUT1)
 
 %.o: %.c
 	$(CC) $(CCFLAGS) $(INC) -c $<
@@ -20,5 +25,8 @@ test: $(OUT)
 $(OUT): $(OBJ)
 	$(CC) $(CCFLAGS) $(INC) $(OBJ) -o $(OUT) $(LDFLAGS)
 
+$(OUT1): $(OBJ1)
+	$(CC) $(CCFLAGS) $(INC) $(OBJ1) -o $(OUT1) $(LDFLAGS)
+
 clean:
-	@rm -f $(OBJ) $(OUT)
+	@rm -f $(OBJ) $(OUT) $(OBJ1) $(OUT1)
