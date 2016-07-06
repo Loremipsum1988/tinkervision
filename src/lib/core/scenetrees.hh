@@ -97,6 +97,13 @@ public:
         scenes_[id] = node;
     }
 
+	void remove_scene(int16_t scene_id) {
+		std::lock_guard < std::mutex > lock(exec_lock_);
+		if (scenes_.find(scene_id) != scenes_.cend()) {
+			scenes_.erase(scene_id); // FIXME: Is this the right approach to delete a scene ?
+		}
+	}
+
     void log_scenes(void) {
         Log("SCENETREE::Log", (void*)this, ": ", (void*)root_);
         if (root_)
@@ -159,6 +166,18 @@ public:
     /// - #TV_NODE_ALLOCATION_FAILED an error occured in SharedResource.
     /// - #TV_INVALID_ID one of both id's is invalid.
     int16_t add_to_scene(int16_t scene_id, int16_t module_id);
+
+	/// Remove a scene from the scenetrees
+	/// \param[in] scene_id Id of an existing scene.
+	int16_t remove_scene(int16_t scene_id);
+
+	/// Disable a scene from the scenetrees
+	/// \param[in] scene_id Id of an existing scene.
+	int16_t disable_scene(int16_t scene_id);
+
+	/// Enable a scene from the scenetrees
+	/// \param[in] scene_id Id of an existing scene.
+	int16_t enable_scene(int16_t scene_id);
 
     void exec_all(Node::ModuleExecutor executor, Timestamp timestamp);
     void exec_scene(int16_t scene_id);

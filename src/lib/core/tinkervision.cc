@@ -384,20 +384,17 @@ int16_t tv_module_set_string_parameter(int8_t module_id,
 
 int16_t tv_scene_from_module(int8_t module, int16_t* scene_id) {
     tv::Log("Tinkervision::SceneFromModule", module, " ", scene_id);
-    return TV_NOT_IMPLEMENTED;
-    // return tv::get_api().scene_start(module, scene_id);
+    return (tv::get_api().scene_start(module, scene_id));
 }
 
 int16_t tv_scene_add_module(int16_t scene, int8_t module) {
     tv::Log("Tinkervision::SceneAddModule", scene, " ", module);
-    return TV_NOT_IMPLEMENTED;
-    // return tv::get_api().add_to_scene(scene, module);
+    return (tv::get_api().add_to_scene(scene, module));
 }
 
 int16_t tv_scene_remove(int16_t scene) {
     tv::Log("Tinkervision::SceneRemove", scene);
-    return TV_NOT_IMPLEMENTED;
-    // return tv::get_api().scene_remove(scene);
+    return (tv::get_api().scene_remove(scene));
 }
 
 //

@@ -24,7 +24,7 @@
 /// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
 /// USA.
 
-#include "../medianBlur/medianBlur.hh"
+#include "../medianblur/medianblur.hh"
 
 #include <iostream>
 #include <fstream>
@@ -32,8 +32,6 @@
 
 DEFINE_VISION_MODULE(MedianBlur)
 
-using namespace cv;
-using namespace tv;
 using namespace std;
 
 void tv::MedianBlur::execute(tv::ImageHeader const& image,
@@ -43,16 +41,15 @@ void tv::MedianBlur::execute(tv::ImageHeader const& image,
 	/// Load/convert the source image
 	Mat cv_src(image.height, image.width, CV_8UC3, (void*) data);
 	Mat cv_dest(output_header.height, output_header.width, CV_8UC3,(void*) output_data);
+	std::copy_n(data, image.bytesize, output_data);
 
 	/// Applying median blur
-	medianBlur(cv_src, cv_dest, this->kSize);
+	cv::medianBlur(cv_src, cv_dest, this->kSize);
+}
 
-	/// debug output
-	cv::namedWindow("original",CV_WINDOW_AUTOSIZE);
-	cv::namedWindow("blur",CV_WINDOW_AUTOSIZE);
+tv::ImageHeader tv::MedianBlur::get_output_image_header(
+		ImageHeader const& input) {
+	tv::ImageHeader output = input;
 
-	cv::imshow("original", cv_src);
-	cv::imshow("blur", cv_dest);
-
-	cv::waitKey(5);
+	return (output);
 }

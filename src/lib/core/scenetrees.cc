@@ -130,6 +130,45 @@ int16_t tv::SceneTrees::add_to_scene(int16_t scene_id, int16_t module_id) {
     return TV_OK;
 }
 
+int16_t tv::SceneTrees::remove_scene(int16_t scene_id) {
+	auto it =
+			std::find_if(scene_trees_.begin(), scene_trees_.end(),
+					[&](SceneTree* tree) {return (tree->contains_scene(scene_id));});
+
+	if (scene_trees_.end() == it) {
+		return (TV_INVALID_ID);
+	}
+
+	(*it)->remove_scene(scene_id);
+	return (TV_OK);
+}
+
+int16_t tv::SceneTrees::disable_scene(int16_t scene_id) {
+	auto it =
+			std::find_if(scene_trees_.begin(), scene_trees_.end(),
+					[&](SceneTree* tree) {return (tree->contains_scene(scene_id));});
+
+	if (scene_trees_.end() == it) {
+		return (TV_INVALID_ID);
+	}
+
+	(*it)->deactivate();
+	return (TV_OK);
+}
+
+int16_t tv::SceneTrees::enable_scene(int16_t scene_id) {
+	auto it =
+			std::find_if(scene_trees_.begin(), scene_trees_.end(),
+					[&](SceneTree* tree) {return (tree->contains_scene(scene_id));});
+
+	if (scene_trees_.end() == it) {
+		return (TV_INVALID_ID);
+	}
+
+	(*it)->activate();
+	return (TV_OK);
+}
+
 void tv::SceneTrees::exec_all(Node::ModuleExecutor executor,
                               Timestamp timestamp) {
     for (auto& tree : scene_trees_) {

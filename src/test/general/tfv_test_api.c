@@ -101,6 +101,7 @@ int main(int argc, char* argv[]) {
         return 0;
     }
 
+
     gettimeofday(&before, NULL);
     result = tv_latency_test();
     gettimeofday(&after, NULL);
@@ -169,7 +170,6 @@ int main(int argc, char* argv[]) {
     height = 480;
 
     result = tv_set_framesize(width, height);
-
     printf("SetFramesize: %d (%s)\n", result, tv_result_string(result));
     sleep(1);
 

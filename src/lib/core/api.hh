@@ -409,53 +409,68 @@ public:
 
     // Unfinished scene approach
 
-    /// Start a scene which is a directed chain of modules.
-    int16_t scene_start(int8_t module_id, int16_t* scene_id) {
-        Log("API", "Starting scene");
-        return TV_NOT_IMPLEMENTED;
+	/// Start a scene which is a directed chain of modules.
+	int16_t scene_start(int8_t module_id, int16_t* scene_id) {
+		Log("Api", "Starting scene");
 
-        if (not modules_->managed(module_id)) {
-            return TV_INVALID_ID;
-        }
+		if (not modules_->managed(module_id)) {
+			return (TV_INVALID_ID);
+		}
 
-        if ((*modules_)[module_id]->tags() &
-                ModuleWrapper::Tag::ExecAndRemove or
-            (*modules_)[module_id]->tags() & ModuleWrapper::Tag::Removable) {
-            return TV_NOT_IMPLEMENTED;
-        }
+		// dont start the module because its marked to be removed
+		if (((*modules_)[module_id]->tags() & ModuleWrapper::Tag::ExecAndRemove)
+				or ((*modules_)[module_id]->tags()
+						& ModuleWrapper::Tag::Removable)) {
+			return (TV_INVALID_ID);	// FIXME: Need a better error no
+		}
 
-        *scene_id = _next_scene_id();
-        return scene_trees_.scene_start(*scene_id, module_id);
-    }
+		*scene_id = _next_scene_id();
+		return (scene_trees_.scene_start(*scene_id, module_id));
+	}
 
-    int16_t scene_remove(int16_t scene_id) {
-        Log("API", "Removing scene");
-        return TV_NOT_IMPLEMENTED;
-    }
+	/// Remove a scene
+	int16_t scene_remove(int16_t scene_id) {
+		Log("Api", "Removing scene: ", scene_id);
+		return (scene_trees_.remove_scene(scene_id));
+	}
 
-    int16_t add_to_scene(int16_t scene_id, int16_t module_id) {
-        Log("API", "Add to scene: ", module_id, " -> ", scene_id);
-        return TV_NOT_IMPLEMENTED;
+	/// Add a module to a scene
+	/// \param[in] scene_id
+	/// \param[in] module_id
+	int16_t add_to_scene(int16_t scene_id, int16_t module_id) {
+		Log("Api", "Add to scene: ", module_id, " -> ", scene_id);
+		// return TV_NOT_IMPLEMENTED; //FIXME: Is not yet finished
 
-        if ((*modules_)[module_id]->tags() &
-                ModuleWrapper::Tag::ExecAndRemove or
-            (*modules_)[module_id]->tags() & ModuleWrapper::Tag::Removable) {
-            return TV_NOT_IMPLEMENTED;
-        }
+		// module is tagged so it will not be added to the scene
+		if (((*modules_)[module_id]->tags() & ModuleWrapper::Tag::ExecAndRemove)
+				or ((*modules_)[module_id]->tags()
+						& ModuleWrapper::Tag::Removable)) {
+			return (TV_MODULE_NOT_AVAILABLE); //FIXME: not the perfect error msg
+		}
 
-        // \todo If adding the scene fails the module has to be in the
-        // same state as before.
-        auto result = _enable_module(module_id);
-        if (result != TV_OK) {
-            return result;
-        }
+		// \todo If adding the scene fails the module has to be in the
+		// same state as before.
+		auto result = _enable_module(module_id);
+		if (result != TV_OK) {
+			return (result);
+		}
 
-        return scene_trees_.add_to_scene(scene_id, module_id);
-    }
+		return (scene_trees_.add_to_scene(scene_id, module_id));
+	}
 
-    int16_t scene_disable(int16_t scene_id) { return TV_NOT_IMPLEMENTED; }
+	///  Disable a scene
+	/// \param[in] scene_id
+	int16_t scene_disable(int16_t scene_id) {
+		Log("Api", "Disabling scene: ", scene_id);
+		return (scene_trees_.disable_scene(scene_id));
+	}
 
-    int16_t scene_enable(int16_t scene_id) { return TV_NOT_IMPLEMENTED; }
+	/// Enable a scene
+	/// \param[in] scene_id
+	int16_t scene_enable(int16_t scene_id) {
+		Log("Api", "Enabling scene: ", scene_id);
+		return (scene_trees_.enable_scene(scene_id));
+	}
 
 private:
     friend tv::Api& get_api(void);  ///< Singleton accessor

@@ -9,10 +9,10 @@ endif
 LDFLAGS	:= -L/usr/lib/python2.7 -lpython2.7
 INC		:= -I/usr/include/python2.7 -I/usr/include/tinkervision
 
-SO		:= medianBlur.so
+SO		:= medianblur.so
 TV		:= interface/module.o interface/image.o \
 		   interface/parameter.o interface/environment.o
-OBJ		:= medianBlur.o $(TV)
+OBJ		:= medianblur.o $(TV)
 
 all: so
 
